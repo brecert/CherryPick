@@ -9,7 +9,7 @@ public class CherryPicker(string? scope = null)
 {
     public string? Scope
     {
-        get => scope; 
+        get => scope;
         set
         {
             scope = value;
@@ -19,7 +19,7 @@ public class CherryPicker(string? scope = null)
 
     public List<WorkerDetails> Workers => scope != null ? _pathCache[scope] : _allWorkers;
     private static readonly Dictionary<string, List<WorkerDetails>> _pathCache = new();
-    private static readonly  List<WorkerDetails> _allWorkers = new();
+    private static readonly List<WorkerDetails> _allWorkers = new();
     private readonly List<WorkerDetails> _results = new();
 
     static CherryPicker()
@@ -28,7 +28,7 @@ public class CherryPicker(string? scope = null)
         {
             if (!typeof(Component).IsAssignableFrom(worker))
                 continue;
-            
+
             string? path = worker.GetCustomAttribute<CategoryAttribute>()?.Paths[0];
             var detail = new WorkerDetails(worker.GetNiceName(), path, worker);
 
@@ -60,7 +60,7 @@ public class CherryPicker(string? scope = null)
             .OrderByDescending(x => x.ratio)
             .Take(resultCount)
             .Select(x => x.worker);
-        
+
         foreach (var w in results)
         {
             _results.Add(w);
@@ -68,14 +68,19 @@ public class CherryPicker(string? scope = null)
     }
 
     // Out of the total string length, how many characters actually match the query. Gives decent results.
-    static float MatchRatioInsensitive(string? result, string match) 
+    static float MatchRatioInsensitive(string? result, string match)
     {
         if (result == null)
             return 0f;
-        
-        bool contains = result.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0;
 
-        return contains ? (float)match.Length / result.Length : 0f;
+        var contains = match.Split(' ').Select(item => (item, score: result.IndexOf(item, StringComparison.OrdinalIgnoreCase)));
+        
+        var score = contains
+            .Where(v => v.score >= 0)
+            .Select((v, i) => (v.item, v.score, i))
+            .Sum((v) => (float)v.item.Length / (result.Length + v.i + 1));
+
+        return contains.All(v => v.score >= 0) ? score : 0f;
     }
 
     public void EditStart(Slot searchRoot, Slot defaultRoot, CherryPicker picker, Sync<string> scope)
@@ -92,7 +97,7 @@ public class CherryPicker(string? scope = null)
     {
         if (forceFinish)
             editor.Text.Target.Text = null;
-         
+
         if (editor != null &&
             editor.Text.Target != null &&
             string.IsNullOrEmpty(editor.Text.Target.Text) &&
@@ -107,13 +112,13 @@ public class CherryPicker(string? scope = null)
     public void EditChanged(TextEditor editor, Slot searchRoot, Slot defaultRoot, UIBuilder searchBuilder, ButtonEventHandler<string> onGenericPressed, ButtonEventHandler<string> onAddPressed)
     {
         if (searchRoot == null ||
-            defaultRoot == null || 
+            defaultRoot == null ||
             editor == null ||
             onGenericPressed == null ||
-            onAddPressed == null || 
+            onAddPressed == null ||
             searchBuilder == null)
-                return;
-        
+            return;
+
         string txt = editor.Text.Target.Text;
         if (txt == null)
             return;
@@ -166,14 +171,14 @@ public class CherryPicker(string? scope = null)
 
         float pressDelay = CherryPick.Config!.GetValue(CherryPick.SingleClick) ? 0f : 0.35f;
         var button = builder.Button($"<noparse={detail.Name.Length}>{detail.Name}<br><size=61.803%><line-height=133%>{path}", col, pressed, arg, pressDelay);
-        
+
         button.ClearFocusOnPress.Value = CherryPick.Config!.GetValue(CherryPick.ClearFocus);
 
         if (detail.Type.IsGenericTypeDefinition)
             button.LocalPressed += (b, d) => EditFinished(editor, searchRoot, defaultRoot, true);
-        
+
         var text = (Text)button.LabelTextField.Parent;
-        text.Size.Value = 24.44582f; 
+        text.Size.Value = 24.44582f;
 
         var smooth = button.Slot.AttachComponent<SmoothValue<colorX>>();
         IField<colorX> target = button.ColorDrivers.First().ColorDrive.Target;
