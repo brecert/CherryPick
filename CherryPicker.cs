@@ -255,7 +255,7 @@ public class CherryPicker(Slot searchRoot, Slot componentUIRoot, ButtonEventHand
             {
                 string typeName = firstGeneric.Type.FullName;
                 typeName = typeName.Substring(0, typeName.IndexOf("`")) + genericType;
-                Type? constructed = NiceTypeParser.TryParse(typeName);
+                Type? constructed = NiceTypeParser.TryParse(typeName, (string s) => searchBuilder.World.Types.GetDataModelType(s, allowAmbigious: true));
 
 
                 if (constructed != null)
